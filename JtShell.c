@@ -16,8 +16,15 @@ Tom
   Function Declarations for builtin shell commands:
  */
 int jtsh_cd(char **args);
+int jtsh_homepage(char **args);
 int jtsh_help(char **args);
 int jtsh_exit(char **args);
+int jtsh_launch(char **args);
+int jtsh_search_file(char **args);
+int jtsh_replace_file(char **args);
+int jtsh_install_github(char **args);
+char *homepage;
+
 
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -25,13 +32,21 @@ int jtsh_exit(char **args);
 char *builtin_str[] = {
   "help",
   "exit", 
-  "cd"
+  "cd",
+  "net",
+  "search",
+  "replace", 
+  "github"
 };
 
 int (*builtin_func[]) (char **) = {
   &jtsh_help,
   &jtsh_exit,
-  &jtsh_cd
+  &jtsh_cd,
+  &jtsh_homepage,
+  &jtsh_search_file,
+  &jtsh_replace_file, 
+  &jtsh_install_github
 };
 
 int jtsh_num_builtins() {
@@ -60,6 +75,87 @@ int jtsh_cd(char **args)
 }
 
 /**
+   @brief Bultin command: open firefox.
+   @param args List of args.  args[0] is "homepage".  args[1] is the command.
+   @return Always returns 1, to continue executing.
+ */
+int jtsh_homepage(char **args)
+{
+  if (args[1] == NULL) {
+    args[0] = "firefox";
+  }else if (strcmp(args[1], "-h") == 0) {
+     printf("Opening Homepage: %s\n", homepage);
+     args[0] = "firefox";
+     args[1] = homepage;
+  }else if (strcmp(args[1], "-s") == 0) {
+    if (args[2] == NULL){
+      printf("Expected net -s URL\n");
+      return 1;
+    }
+    printf("Changing homepage\n");
+    sprintf(homepage, "%s", args[2]);    
+    FILE *config;
+    config = fopen("config", "a");
+    fputs("homepage", config);
+    fputs(homepage, config);
+    fputs("\n", config);
+    fclose(config);
+    
+    return 1;
+  }else{
+    fprintf(stderr, "jtsh: expected different argument to \"homepage\"\n");
+    return 1;
+  }
+  pid_t pid;
+  pid = fork();
+  if (pid == 0) {
+    // Child process
+    if (execvp("firefox", args) == -1) {
+      perror("jtsh");
+    }
+    exit(EXIT_FAILURE);
+  } else if (pid < 0) {
+    // Error forking
+    perror("jtsh");
+  }
+  return 1;
+}
+/**
+   @brief Bultin command: installs/updates github This builtin is alias.
+   @param args List of args. None.
+   @return Always returns 1, to continue executing.
+ */
+int jtsh_install_github(char **args)
+{
+  printf("Installing github\n");
+  args[1]="sudo";
+  args[2]="apt-get";
+  args[3]="install";
+  args[4]="git";
+  args[5]=NULL;
+
+  pid_t pid, wpid;
+  int status;
+
+  pid = fork();
+  if (pid == 0) {
+    // Child process
+    if (execvp("sudo", args) == -1) {
+      perror("jtsh");
+    }
+    exit(EXIT_FAILURE);
+  } else if (pid < 0) {
+    // Error forking
+    perror("jtsh");
+  } else {
+    // Parent process
+    do {
+      wpid = waitpid(pid, &status, WUNTRACED);
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+  }
+  return 1;
+}
+/**
    @brief Builtin command: print help.
    @param args List of args.  Not examined.
    @return Always returns 1, to continue executing.
@@ -77,7 +173,53 @@ int jtsh_help(char **args)
   printf("Use the man command for information on other programs.\n");
   return 1;
 }
+// lifted from http://stackoverflow.com/questions/779875/what-is-the-function-to-replace-string-in-c
+char *str_replace(char *orig, char *rep, char *with) {
+    char *result; // the return string
+    char *ins;    // the next insert point
+    char *tmp;    // varies
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
 
+    // sanity checks and initialization
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; (tmp = strstr(ins, rep)); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result)
+        return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+
+    strcpy(tmp, orig);
+    return result;
+}
 /**
    @brief Builtin command: exit.
    @param args List of args.  Not examined.
@@ -153,6 +295,170 @@ char *jtsh_read_line(void)
   return line;
 }
 
+// lifted from http://stackoverflow.com/questions/1627624/search-for-string-in-text-file-c
+char * read_file_line(FILE *fin) {
+    char *buffer;
+    char *tmp;
+    int read_chars = 0;
+    int bufsize = 512;
+    char *line = malloc(bufsize);
+
+    if ( !line ) {
+        return NULL;
+    }
+
+    buffer = line;
+
+    while ( fgets(buffer, bufsize - read_chars, fin) ) {
+        read_chars = strlen(line);
+
+        if ( line[read_chars - 1] == '\n' ) {
+            line[read_chars - 1] = '\0';
+            return line;
+        }
+
+        else {
+            bufsize = 2 * bufsize;
+            tmp = realloc(line, bufsize);
+            if ( tmp ) {
+                line = tmp;
+                buffer = line + read_chars;
+            }
+            else {
+                free(line);
+                return NULL;
+            }
+        }
+    }
+    return NULL;
+}
+
+// lifted from http://stackoverflow.com/questions/1627624/search-for-string-in-text-file-c
+int jtsh_search_file(char **args)
+{
+  if (args[1] == NULL) {
+      printf("expected a file as argument\n");
+      return 1;
+  }
+  if (args[2] == NULL) {
+      printf("expected a search term as second argument\n");
+      return 1;
+  }
+  printf("searching file %s for term %s:\n", args[1], args[2]);
+  printf("-------------\n\n");
+
+  int lineCount = 1;
+  int wordCount = 0;
+  int currentLineCount = 0;
+  FILE *fin;
+  char *line;
+
+  fin = fopen(args[1], "r");
+
+  if (fin) {
+      // lifted from http://stackoverflow.com/questions/9052490/find-the-count-of-substring-in-string
+      while ((line = read_file_line(fin))) {
+        char *tmp = line;
+
+        while((tmp = strstr(tmp, args[2])))
+        {
+          currentLineCount++;
+          wordCount++;
+          tmp++;
+        }
+
+        if(currentLineCount > 0){
+          printf("   (%d) matches on line %d: '%s'\n", currentLineCount, lineCount, line);
+        }
+        currentLineCount = 0;
+        lineCount++;
+      }
+  }else{
+     printf("Could not find file %s\n", args[1]);
+     printf("\n-------------\n");
+     return 1;
+  }
+
+  fclose(fin);
+
+  printf("\n-------------\n");
+  printf("search complete, found (%d) matches\n", wordCount);
+  return 1;
+}
+
+//Modification of jtsh_search_file
+int jtsh_replace_file(char **args)
+{
+  if (args[1] == NULL) {
+      printf("expected a file as argument\n");
+      return 1;
+  }
+  if (args[2] == NULL) {
+      printf("expected a search term as second argument\n");
+      return 1;
+  }
+  if (args[3] == NULL) {
+      printf("expected a replace term as second argument\n");
+      return 1;
+  }
+  printf("searching file %s for term %s:\n", args[1], args[2]);
+  printf("-------------\n\n");
+
+  char *tempFileName = "temp";
+  int lineCount = 1;
+  int wordCount = 0;
+  int currentLineCount = 0;
+  FILE *fin;
+  FILE *fout = fopen(tempFileName, "ab+");
+  char *line;
+
+  fin = fopen(args[1], "r");
+
+  if (fin) {
+
+      // lifted from http://stackoverflow.com/questions/9052490/find-the-count-of-substring-in-string
+      while ((line = read_file_line(fin))) {
+        char *tmp = line;
+
+        while((tmp = strstr(tmp, args[2])))
+        {
+          currentLineCount++;
+          wordCount++;
+          tmp++;
+        }
+
+        if(currentLineCount > 0){
+          printf("   (%d) matches on line %d: '%s'\n", currentLineCount, lineCount, line);
+
+          tmp = str_replace(line, args[2], args[3]);
+          printf("Replacement line: %s\n", tmp);
+          fputs(tmp, fout);
+        } else {
+          fputs(line, fout);
+        }
+
+        fputs("\n", fout); // adding new lines in the file
+        currentLineCount = 0;
+        lineCount++;
+        free(line);
+      }
+  }else{
+     printf("Could not find file %s\n", args[1]);
+     printf("\n-------------\n");
+     return 1;
+  }
+
+  fclose(fin);
+  fclose(fout);
+
+  remove(args[1]);
+  rename(tempFileName, args[1]);
+
+  printf("\n-------------\n");
+  printf("search complete, replaced (%d) matches\n", wordCount);
+  return 1;
+}
+
 /**
    @brief Split a line into tokens (very naively).
    @param line The line.
@@ -218,7 +524,24 @@ void jtsh_loop(void)
 int main(int argc, char **argv)
 {
   // Load config files, if any.
-
+  FILE *config;
+  config = fopen("config", "r");
+  if(config){
+    printf("Config file found\n");
+    char line[256];
+    while(fgets(line, sizeof(line), config)!=NULL) {
+        char **data;
+        data = jtsh_split_line(line);
+        if(strcmp(data[0], "homepage")==0){
+          homepage = malloc(sizeof(data[1]));
+          sprintf(homepage, "%s", data[1]);
+        }
+      }
+    fclose(config);
+  }else{
+    printf("Config file not found\n");
+    homepage = "google.ca";
+  }
   // Run command loop.
   jtsh_loop();
 
