@@ -96,7 +96,7 @@ int jtsh_homepage(char **args)
     sprintf(homepage, "%s", args[2]);    
     FILE *config;
     config = fopen("config", "a");
-    fputs("homepage", config);
+    fputs("homepage ", config);
     fputs(homepage, config);
     fputs("\n", config);
     fclose(config);
