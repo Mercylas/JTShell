@@ -172,6 +172,7 @@ int jtsh_hello_world(char **args)
     if(strcmp(args[1], "help") == 0){
       printf("The suported language are:\n");
       printf("java\n");
+      printf("c\n");
       return 1;
     }
   }
@@ -180,10 +181,11 @@ int jtsh_hello_world(char **args)
       return 1;
   }
   printf("Creating file %s in %s:\n", args[1], args[2]);
+  FILE *hello;
+  char name[255];
+  //Java
   if(strcmp(args[2], "java") == 0) {
-    char name[255];
     sprintf(name, "%s.%s", args[1], args[2]);
-    FILE *hello;
     hello = fopen(name, "w");
     if(hello){
       fputs("public class ", hello);
@@ -194,9 +196,31 @@ int jtsh_hello_world(char **args)
       fputs("  }\n\n",hello);
       fputs("}\n",hello);
       fclose(hello);
+      return 1;
     }else{
        perror("jtsh");
+        return 1;
     }
+  }
+  //C
+  if(strcmp(args[2], "c") == 0){
+    sprintf(name, "%s.%s", args[1], args[2]);
+    hello = fopen(name, "w");
+    if(hello){
+      fputs("#include<studio.h>\n\n", hello);
+      fputs("main()\n", hello);
+      fputs("{\n", hello);
+      fputs("  printf(\"Hello, World\");\n",hello);
+      fputs("}\n",hello);
+      fclose(hello);
+      return 1;
+    }else{
+       perror("jtsh");
+        return 1;
+    }
+
+  }else{
+    printf("%s is not a supported language\n", args[2]);
 
   }
   return 1;
