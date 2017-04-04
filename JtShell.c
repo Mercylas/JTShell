@@ -23,6 +23,7 @@ int jtsh_launch(char **args);
 int jtsh_search_file(char **args);
 int jtsh_replace_file(char **args);
 int jtsh_install_github(char **args);
+int jtsh_hello_world(char **args);
 char *homepage;
 
 
@@ -36,7 +37,8 @@ char *builtin_str[] = {
   "net",
   "search",
   "replace", 
-  "github"
+  "github",
+  "helloworld"
 };
 
 int (*builtin_func[]) (char **) = {
@@ -46,7 +48,8 @@ int (*builtin_func[]) (char **) = {
   &jtsh_homepage,
   &jtsh_search_file,
   &jtsh_replace_file, 
-  &jtsh_install_github
+  &jtsh_install_github,
+  &jtsh_hello_world
 };
 
 int jtsh_num_builtins() {
@@ -76,7 +79,7 @@ int jtsh_cd(char **args)
 
 /**
    @brief Bultin command: open firefox.
-   @param args List of args.  args[0] is "homepage".  args[1] is the command.
+   @param args List of args.  args[0] is "net".  args[1] is the command.
    @return Always returns 1, to continue executing.
  */
 int jtsh_homepage(char **args)
@@ -152,6 +155,49 @@ int jtsh_install_github(char **args)
     do {
       wpid = waitpid(pid, &status, WUNTRACED);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+  }
+  return 1;
+}
+/**
+   @brief Bultin command: create a hello world file for a specified language
+   @param args List of args. arh[0]] is "helloworld" arg[1] is the Filename, arg[2] is the language.
+   @return Always returns 1, to continue executing.
+ */
+int jtsh_hello_world(char **args)
+{
+  if (args[1] == NULL) {
+      printf("expected a filename or \"help\" as the first argument\n");
+      return 1;
+  }else{
+    if(strcmp(args[1], "help") == 0){
+      printf("The suported language are:\n");
+      printf("java\n");
+      return 1;
+    }
+  }
+  if (args[2] == NULL) {
+      printf("expected a language as second argument\n");
+      return 1;
+  }
+  printf("Creating file %s in %s:\n", args[1], args[2]);
+  if(strcmp(args[2], "java") == 0) {
+    char name[255];
+    sprintf(name, "%s.%s", args[1], args[2]);
+    FILE *hello;
+    hello = fopen(name, "w");
+    if(hello){
+      fputs("public class ", hello);
+      fputs(args[1], hello);
+      fputs("\n\n", hello);
+      fputs("  public static void main(String[] args) {\n",hello);
+      fputs("    System.out.println(\"Hello, World\");\n",hello);
+      fputs("  }\n\n",hello);
+      fputs("}\n",hello);
+      fclose(hello);
+    }else{
+       perror("jtsh");
+    }
+
   }
   return 1;
 }
@@ -338,7 +384,6 @@ int jtsh_search_file(char **args)
 {
   if (args[1] == NULL) {
       printf("expected a file as argument\n");
-      return 1;
   }
   if (args[2] == NULL) {
       printf("expected a search term as second argument\n");
@@ -390,15 +435,13 @@ int jtsh_search_file(char **args)
 int jtsh_replace_file(char **args)
 {
   if (args[1] == NULL) {
-      printf("expected a file as argument\n");
-      return 1;
+      printf("expected a file as first argument\n");
   }
   if (args[2] == NULL) {
       printf("expected a search term as second argument\n");
-      return 1;
   }
   if (args[3] == NULL) {
-      printf("expected a replace term as second argument\n");
+      printf("expected a replace term as third argument\n");
       return 1;
   }
   printf("searching file %s for term %s:\n", args[1], args[2]);
