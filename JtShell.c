@@ -173,6 +173,7 @@ int jtsh_hello_world(char **args)
       printf("The suported language are:\n");
       printf("java\n");
       printf("c\n");
+      printf("c#\n");
       return 1;
     }
   }
@@ -190,7 +191,7 @@ int jtsh_hello_world(char **args)
     if(hello){
       fputs("public class ", hello);
       fputs(args[1], hello);
-      fputs("\n\n", hello);
+      fputs("\n{\n", hello);
       fputs("  public static void main(String[] args) {\n",hello);
       fputs("    System.out.println(\"Hello, World\");\n",hello);
       fputs("  }\n\n",hello);
@@ -218,7 +219,25 @@ int jtsh_hello_world(char **args)
        perror("jtsh");
         return 1;
     }
-
+  }
+  //C#
+  if(strcmp(args[2], "c#") == 0){
+    sprintf(name, "%s.cs", args[1]);
+    hello = fopen(name, "w");
+    if(hello){
+      fputs("public class ", hello);
+      fputs(args[1], hello);
+      fputs("\n{\n", hello);
+      fputs("  public static void Main() {\n",hello);
+      fputs("    System.Console.WriteLine(\"Hello, World\");\n",hello);
+      fputs("  }\n\n",hello);
+      fputs("}\n",hello);
+      fclose(hello);
+      return 1;
+    }else{
+       perror("jtsh");
+        return 1;
+    }
   }else{
     printf("%s is not a supported language\n", args[2]);
 
