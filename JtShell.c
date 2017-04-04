@@ -171,9 +171,10 @@ int jtsh_hello_world(char **args)
   }else{
     if(strcmp(args[1], "help") == 0){
       printf("The suported language are:\n");
-      printf("java\n");
       printf("c\n");
       printf("c#\n");
+      printf("java\n");
+      printf("python\n");
       return 1;
     }
   }
@@ -238,7 +239,21 @@ int jtsh_hello_world(char **args)
        perror("jtsh");
         return 1;
     }
-  }else{
+  }
+  //Python
+  if(strcmp(args[2], "python") == 0){
+    sprintf(name, "%s.py", args[1]);
+    hello = fopen(name, "w");
+    if(hello){
+      fputs("print(\"Hello, World\")\n ", hello);
+      fclose(hello);
+      return 1;
+    }else{
+       perror("jtsh");
+        return 1;
+    }
+  }
+  else{
     printf("%s is not a supported language\n", args[2]);
 
   }
