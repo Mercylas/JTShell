@@ -172,6 +172,7 @@ int jtsh_hello_world(char **args)
     if(strcmp(args[1], "help") == 0){
       printf("The suported language are:\n");
       printf("c\n");
+      printf("c++\n");
       printf("c#\n");
       printf("java\n");
       printf("python\n");
@@ -209,7 +210,7 @@ int jtsh_hello_world(char **args)
     sprintf(name, "%s.%s", args[1], args[2]);
     hello = fopen(name, "w");
     if(hello){
-      fputs("#include<studio.h>\n\n", hello);
+      fputs("#include <stdio.h>\n\n", hello);
       fputs("main()\n", hello);
       fputs("{\n", hello);
       fputs("  printf(\"Hello, World\");\n",hello);
@@ -240,6 +241,23 @@ int jtsh_hello_world(char **args)
         return 1;
     }
   }
+  //c++
+  if(strcmp(args[2], "c++") == 0){
+    sprintf(name, "%s.cc", args[1]);
+    hello = fopen(name, "w");
+    if(hello){
+      fputs("#include <iostream>\n\n", hello);
+      fputs("int main(int argc, char **argv) {\n", hello);
+      fputs("  std::cout << \"Hello, World\" << std::endl;\n", hello);
+      fputs("  return 0; \n",hello);
+      fputs("}\n",hello);
+      fclose(hello);
+      return 1;
+    }else{
+       perror("jtsh");
+        return 1;
+    }
+  } 
   //Python
   if(strcmp(args[2], "python") == 0){
     sprintf(name, "%s.py", args[1]);
