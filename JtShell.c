@@ -95,15 +95,14 @@ int jtsh_homepage(char **args)
       printf("Expected net -s URL\n");
       return 1;
     }
-    printf("Changing homepage\n");
-    sprintf(homepage, "%s", args[2]);    
+    sprintf(homepage, "%s", args[2]); 
+    printf("Changing homepage to %s\n", homepage);   
     FILE *config;
     config = fopen("config", "a");
     fputs("homepage ", config);
     fputs(homepage, config);
     fputs("\n", config);
     fclose(config);
-    
     return 1;
   }
   pid_t pid;
@@ -347,7 +346,6 @@ char *str_replace(char *orig, char *rep, char *with) {
  */
 int jtsh_exit(char **args)
 {
-  free(homepage);
   return 0;
 }
 
@@ -651,7 +649,7 @@ int main(int argc, char **argv)
         char **data;
         data = jtsh_split_line(line);
         if(strcmp(data[0], "homepage")==0){
-          homepage = malloc(sizeof(data[1]));
+          homepage = malloc(256);
           sprintf(homepage, "%s", data[1]);
         }
         free(data);
