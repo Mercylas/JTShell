@@ -105,9 +105,6 @@ int jtsh_homepage(char **args)
     fclose(config);
     
     return 1;
-  }else{
-    fprintf(stderr, "jtsh: expected different argument to \"homepage\"\n");
-    return 1;
   }
   pid_t pid;
   pid = fork();
@@ -285,7 +282,8 @@ int jtsh_hello_world(char **args)
 int jtsh_help(char **args)
 {
   int i;
-  printf("Descritpion here #TODO\n");
+  printf("Welcome to the JTShell. You have access to all bash commands.\n");
+  printf("Additionally you have access to all the JTShell built in functions\n");
   printf("The following are built in:\n");
 
   for (i = 0; i < jtsh_num_builtins(); i++) {
@@ -349,6 +347,7 @@ char *str_replace(char *orig, char *rep, char *with) {
  */
 int jtsh_exit(char **args)
 {
+  free(homepage);
   return 0;
 }
 
@@ -655,6 +654,7 @@ int main(int argc, char **argv)
           homepage = malloc(sizeof(data[1]));
           sprintf(homepage, "%s", data[1]);
         }
+        free(data);
       }
     fclose(config);
   }else{
